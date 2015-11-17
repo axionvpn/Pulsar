@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load static %}{% load i18n %}
+{% block title %}Go Interactive{% endblock %}
+
+{% block content %}
+
+<div class="container">
+
+    <h2>Go Interactive on {{ implant.label }} ({{ implant.group.label }})</h2>
+    
+    <p>Before going interactive, set up a metasploit <i>multi/handler</i> listener on {{ handler_host }}:{{ handler_port }}.</p>
+
+    <form method="post">
+    	{% csrf_token %}
+    	<input type="submit" class="btn btn-danger" value="Go Interactive!"/>
+    	<a href="{% url 'implant:list' %}" class="btn btn-default">Cancel</a>
+    </form>
+
+</div>
+
+{% endblock content %}

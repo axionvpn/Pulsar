@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load static %}{% load i18n %}
+{% block title %}Uninstall{% endblock %}
+
+{% block content %}
+
+<div class="container">
+
+    <h2>Uninstall on {{ implant.label }} ({{ implant.group.label }})</h2>
+    
+    <p>Are you sure you want to uninstall this implant?</p>
+
+    <form method="post">
+    	{% csrf_token %}
+    	<input type="submit" class="btn btn-danger" value="Uninstall"/>
+    	<a href="{% url 'implant:list' %}" class="btn btn-default">Cancel</a>
+    </form>
+
+</div>
+
+{% endblock content %}

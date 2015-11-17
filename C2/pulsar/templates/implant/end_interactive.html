@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load static %}{% load i18n %}
+{% block title %}End Interactive Session{% endblock %}
+
+{% block content %}
+
+<div class="container">
+
+    <h2>End Interactive Session on {{ implant.label }} ({{ implant.group.label }})</h2>
+    
+    <form method="post">
+    	{% csrf_token %}
+    	<input type="submit" class="btn btn-danger" value="End Session"/>
+    	<a href="{% url 'implant:list' %}" class="btn btn-default">Cancel</a>
+    </form>
+
+</div>
+
+{% endblock content %}

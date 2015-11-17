@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load static %}{% load i18n %}
+{% block title %}Groups{% endblock %}
+
+{% block content %}
+
+<div class="container">
+
+    <h2>Groups</h2>
+
+    <table class="table table-striped">
+        <tr>
+          <th>Label</th>
+          <th>Slug</th>
+          <th>Implants</th>
+          <th>Actions</th>
+        </tr>
+
+        {% for group in group_list %}
+        	<tr>
+        		<td>{{ group.label }}</td>
+        		<td>{{ group.slug }}</td>
+        		<td><a href="{% url 'implant:list_by_group' group.slug %}">{{ group.implant_set.count }} implant{{ group.implant_set.count|pluralize }}</a></td>
+        		<td>
+            		<a href="{% url 'implant:group_update' group.slug %}"><i class="glyphicon glyphicon-wrench"></i></a>
+          		</td>
+        	</tr>
+        {% endfor %}
+    </table>
+    <p class="pull-right"><a href="{% url 'implant:group_create' %}" class="btn btn-primary">Add Group</a></p>
+</div>
+
+{% endblock content %}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load static %}{% load i18n %}
+{% block title %}Delete {{ provisionedbinary.label }}{% endblock %}
+
+{% block content %}
+
+<div class="container">
+
+  <h2>Delete {{ provisionedbinary.label }}</h2>
+
+  <p>Are you sure you want to delete {{ provisionedbinary.label }}? This will remove the configuration and provisioned binary completely. Implants already running this binary will continue to function as normal.</p>
+
+  <form action="" method="post">
+    {% csrf_token %}
+    <table class="table">
+      {{ form.as_table }}
+    </table>
+    <input class="btn btn-danger" type="submit" value="Delete Binary" />
+    <a href="{% url 'implant:binaries_list' %}" class="btn btn-default">Cancel</a>
+  </form>
+
+</div>
+
+{% endblock content %}

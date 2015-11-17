@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load static %}{% load i18n %}
+{% block title %}Create New Binary{% endblock %}
+
+{% block content %}
+
+<div class="container">
+
+  <h2>Create New Binary</h2>
+
+  <form action="" method="post">
+    {% csrf_token %}
+    <table class="table">
+      {{ form.as_table }}
+    </table>
+    <input class="btn btn-primary" type="submit" value="Create Binary" />
+    <a href="{% url 'implant:binaries_list' %}" class="btn btn-default">Cancel</a>
+  </form>
+
+</div>
+
+{% endblock content %}

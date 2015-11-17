@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load static %}{% load i18n %}
+{% block title %}Provisioned Binaries{% endblock %}
+
+{% block content %}
+
+<div class="container">
+
+    <h2>Provisioned Binaries</h2>
+
+    <table class="table table-striped">
+        <tr>
+          <th>Label</th>
+          <th>UUID</th>
+          <th>Type</th>
+          <th>Beacon Time</th>
+          <th>Beacon Jitter</th>
+          <th>Local Port</th>
+          <th>Beacon URL</th>
+          <th>Actions</th>
+        </tr>
+
+        {% for binary in provisionedbinary_list %}
+        	<tr>
+        		<td>{{ binary.label }}</td>
+        		<td>{{ binary.uuid }}</td>
+        		<td>{{ binary.get_binary_type_display }}</td>
+        		<td>{{ binary.beacon_time }}</td>
+        		<td>{{ binary.beacon_jitter }}</td>
+        		<td>{{ binary.local_port }}</td>
+        		<td>{{ binary.relay_url }}</td>
+        		<td>
+              {% if binary.binary_file %}
+            	 <a href="{{ binary.binary_file.url }}"><i class="glyphicon glyphicon-download-alt" title="Download"></i></a>
+              {% endif %}
+            	<a href="{% url 'implant:binary_delete' binary.pk %}"><i class="glyphicon glyphicon-remove" title="Delete"></i></a>
+          	</td>
+        	</tr>
+        {% endfor %}
+    </table>
+    <p class="pull-right"><a href="{% url 'implant:binary_create' %}" class="btn btn-primary">Add Binary</a></p>
+</div>
+
+{% endblock content %}

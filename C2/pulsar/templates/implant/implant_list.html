@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load static %}{% load i18n %}
+{% block title %}Implants{% endblock %}
+
+{% block content %}
+
+<div class="container">
+
+    <h2>Implants</h2>
+
+    <table class="table table-striped">
+        <tr>
+          <th>Status</th>
+          <th>Group</th>
+          <th>Label</th>
+          <th>Address</th>
+          <!-- <th>Platform</th> -->
+          <th>Last Beacon <i class="glyphicon glyphicon-chevron-down"></i></th>
+          <th>Expected Next Beacon</th>
+          <th>Actions</th>
+        </tr>
+
+        {% for implant in implant_list %}
+        	<tr class="{{ implant.status_class }}">
+        		<td>{{ implant.status }}</td>
+        		<td><a href="{% url 'implant:list_by_group' implant.group.slug %}">{{ implant.group.label }}</a></td>
+        		<td>{{ implant.label }}</td>
+        		<td>{{ implant.ip_address }}</td>
+        		<!-- <td>{{ implant.operating_system }}</td> -->
+        		<td>{{ implant.last_beacon }}</td>
+        		<td>{{ implant.expected_next_beacon }}</td>
+        		<td>
+              {% if implant.interactive %}
+                <a href="{% url 'implant:end_interactive' implant.pk %}"><i class="glyphicon glyphicon-ok" title="Done with Interactive Session"></i></a>
+              {% else %}
+        		    <a href="{% url 'implant:go_interactive' implant.pk %}"><i class="glyphicon glyphicon-console" title="Go Interactive"></i></a>
+              {% endif %}
+            	<a href="{% url 'implant:edit' implant.pk %}"><i class="glyphicon glyphicon-wrench" title="Edit Settings"></i></a>
+            	<a href="{% url 'implant:uninstall' implant.pk %}"><i class="glyphicon glyphicon-remove" title="Uninstall"></i></a>
+          	</td>
+        	</tr>
+        {% endfor %}
+    </table>
+</div>
+
+{% endblock content %}

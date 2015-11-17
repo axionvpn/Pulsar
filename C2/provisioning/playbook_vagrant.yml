@@ -1,0 +1,92 @@
+---
+- hosts: all
+  vars:
+    project_name: pulsar
+    database_name: "{{ project_name }}"
+    database_user: root
+    database_password: ""
+    database_host: localhost
+    database_port: 5432
+    locale: en_US.UTF-8
+    project_path: /vagrant
+    pulsar_py: "{{ project_path }}/pulsar.py"
+    user: root
+    settings_module: "config.settings.local"
+    admin_username: admin
+    admin_password: password
+    fqdn: pulsar.local
+  tasks:
+  - name: install package-based dependencies
+    apt: name={{ item }} state=installed update_cache=yes cache_valid_time=3600
+    with_items:
+      - build-essential
+      - gettext
+      - python-dev
+      - zlib1g-dev
+      - libpq-dev
+      - postgresql
+      - supervisor
+      - nginx
+  - name: set postgresql to start at boot
+    service: name=postgresql enabled=yes
+  - name: set supervisor to start at boot
+    service: name=supervisor enabled=yes
+  - name: set nginx to start at boot
+    service: name=nginx enabled=yes
+  - name: start postgresql
+    service: name=postgresql state=restarted
+  - name: install production python packages
+    pip: requirements="{{ project_path }}/requirements.txt"
+  - name: install development python packages
+    pip: requirements="{{ project_path }}/requirements/local.txt"
+  - name: create database user
+    postgresql_user:
+      name: "{{ database_user }}"
+      password: "{{ database_password }}"
+    sudo: True
+    sudo_user: postgres
+  - name: create database
+    postgresql_db:
+      name: "{{ database_name }}"
+      owner: "{{ database_user }}"
+      encoding: UTF8
+      lc_ctype: "{{ locale }}"
+      lc_collate: "{{ locale }}"
+      template: template0
+    sudo: True
+    sudo_user: postgres
+  - name: create self-signed SSL cert
+    command: "openssl req -new -nodes -x509 -subj '/C=US/ST=Oregon/L=Portland/O=IT/CN={{ fqdn }}' -days 3650 -keyout {{ project_path }}/{{ project_name }}.key -out {{ project_path }}/{{ project_name }}.pem -extensions v3_ca creates='{{ project_path }}/{{ project_name }}.pem'"
+  - name: create supervisor configuration
+    template: src=templates/supervisor.conf.j2 dest=/etc/supervisor/conf.d/{{ project_name }}.conf
+    sudo: True
+    notify: 
+      - restart supervisor
+      - restart pulsar
+  - name: migrate the database
+    django_manage: command=migrate app_path={{ project_path }}
+  - name: add admin user
+    script: scripts/setadmin.py
+    environment:
+      PROJECT_DIR: "{{ project_path }}"
+      ADMIN_USERNAME: "{{ admin_username }}"
+      ADMIN_PASSWORD: "{{ admin_password }}"
+      DJANGO_SETTINGS_MODULE: "{{ settings_module }}"
+  - name: create nginx configuration
+    template: src=templates/nginx.conf.j2 dest=/etc/nginx/sites-enabled/{{ project_name }}.conf
+    sudo: True
+    notify: restart nginx
+  - name: delete default nginx site
+    file: dest=/etc/nginx/sites-enabled/default state=absent
+    sudo: True
+    notify: restart nginx
+  handlers:
+    - name: restart supervisor
+      service: name=supervisor state=restarted
+      sudo: True
+    - name: restart pulsar
+      supervisorctl: name={{ project_name }} state=restarted
+      sudo: True
+    - name: restart nginx
+      service: name=nginx state=restarted
+      sudo: True
