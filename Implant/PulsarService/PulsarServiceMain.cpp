@@ -144,6 +144,7 @@ BOOL IsParentSCM(VOID)
 		DBGPrint("Install succeeded\n");
 		//Now run the service
 		StartPulsarSvc(SERVICE_NAME);
+
 	}
 	else{
 		DBGPrint("Install failed, just running\n");

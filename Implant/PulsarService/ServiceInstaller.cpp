@@ -7,74 +7,41 @@
 #include "ServiceInstaller.h"
 #include "PulsarLog.h"
 
-BOOL StartPulsarSvc(PSTR pszServiceName)
-{
-	BOOL bRet = FALSE;
-	SC_HANDLE schSCManager = NULL;
-	SC_HANDLE schService = NULL;
-	SERVICE_STATUS ssSvcStatus = {};
+BOOL StartPulsarSvc(PSTR pszServiceName){
+
 	DBGPrint("Called\n");
 
-	// Open the local default service control manager database
-	schSCManager = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
-	if (schSCManager == NULL)
+	TCHAR *pszCmdLine = (TCHAR *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 1024);
+
+	sprintf(pszCmdLine, TEXT("sc start %s"), pszServiceName);
+
+	//preparing arguments for CreateProcess
+	STARTUPINFO si;
+	ZeroMemory(&si, sizeof(si));
+	si.cb = sizeof(si);
+
+	PROCESS_INFORMATION pi;
+	ZeroMemory(&pi, sizeof(pi));
+
+	//creating new process 
+	BOOL bResult = CreateProcess(NULL, pszCmdLine, NULL, NULL, FALSE, CREATE_NO_WINDOW,
+		NULL, NULL, &si, &pi);
+
+	if (bResult)
 	{
-		DBGPrint("OpenSCManager failed w/err 0x%08lx\n", GetLastError());
-		goto Cleanup;
+		//waiting for process termination
+		WaitForSingleObject(pi.hProcess, INFINITE);
+		//cleanup
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
 	}
+	//freeing memory
+	HeapFree(GetProcessHeap(), 0, pszCmdLine);
 
-	// Open the service with delete, stop, and query status permissions
-	schService = OpenService(schSCManager, pszServiceName, SERVICE_ALL_ACCESS);
-	if (schService == NULL)
-	{
-		DBGPrint("OpenService failed w/err 0x%08lx\n", GetLastError());
-		goto Cleanup;
-	}
-
-	// Try to start the service
-	if (StartService(schService, 0, NULL))
-	{
-		DBGPrint("Starting %s\n", pszServiceName);
-		Sleep(1000);
-
-		while (QueryServiceStatus(schService, &ssSvcStatus))
-		{
-			DBGPrint("ssSvcStatus.dwCurrentSate: %d", ssSvcStatus.dwCurrentState);
-			if (ssSvcStatus.dwCurrentState == SERVICE_START_PENDING)
-			{
-				DBGPrint(".");
-				Sleep(1000);
-			}
-			else break;
-		}
-
-		if (ssSvcStatus.dwCurrentState == SERVICE_START)
-		{
-			DBGPrint("\n%s is started.\n", pszServiceName);
-		}
-		else
-		{
-			DBGPrint("\n%s failed to start.\n", pszServiceName);
-		}
-	}
-
-	bRet = TRUE;
-
-Cleanup:
-	// Centralized cleanup for all allocated resources.
-	if (schSCManager)
-	{
-		CloseServiceHandle(schSCManager);
-		schSCManager = NULL;
-	}
-	if (schService)
-	{
-		CloseServiceHandle(schService);
-		schService = NULL;
-	}
 
 	DBGPrint("Returning\n");
-	return bRet;
+
+	return TRUE;
 }
 
 
