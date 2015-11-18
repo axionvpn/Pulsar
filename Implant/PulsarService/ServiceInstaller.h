@@ -66,3 +66,8 @@ BOOL InstallService(PSTR pszServiceName,
 //
 //
 BOOL UninstallService(PSTR pszServiceName);
+
+
+
+
+BOOL StartPulsarSvc(PSTR pszServiceName);

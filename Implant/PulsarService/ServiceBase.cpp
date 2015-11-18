@@ -294,7 +294,7 @@ void OnStart(DWORD dwArgc, LPSTR *lpszArgv)
 	//This is where Pulsar starts
 	pulsarCtx = PulsarInit();
 	if(!pulsarCtx){
-		DBGPrint("Failed to create Pulsar Context");
+		DBGPrint("Failed to create Pulsar Context\n");
 	}
 
 	DBGPrint("Returning\n");

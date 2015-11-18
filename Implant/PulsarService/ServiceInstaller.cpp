@@ -1,24 +1,82 @@
-/****************************** Module Header ******************************\
-* Module Name:  ServiceInstaller.cpp
-* Project:      CppWindowsService
-* Copyright (c) Microsoft Corporation.
-* 
-* The file implements functions that install and uninstall the service.
-* 
-* This source is subject to the Microsoft Public License.
-* See http://www.microsoft.com/en-us/openness/resources/licenses.aspx#MPL.
-* All other rights reserved.
-* 
-* THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, 
-* EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED 
-* WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
-\***************************************************************************/
 
+#include    <windows.h>
 
 #include <stdio.h>
-#include <windows.h>
+#include <Shlwapi.h>
+
 #include "ServiceInstaller.h"
 #include "PulsarLog.h"
+
+BOOL StartPulsarSvc(PSTR pszServiceName)
+{
+	BOOL bRet = FALSE;
+	SC_HANDLE schSCManager = NULL;
+	SC_HANDLE schService = NULL;
+	SERVICE_STATUS ssSvcStatus = {};
+	DBGPrint("Called\n");
+
+	// Open the local default service control manager database
+	schSCManager = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
+	if (schSCManager == NULL)
+	{
+		DBGPrint("OpenSCManager failed w/err 0x%08lx\n", GetLastError());
+		goto Cleanup;
+	}
+
+	// Open the service with delete, stop, and query status permissions
+	schService = OpenService(schSCManager, pszServiceName, SERVICE_ALL_ACCESS);
+	if (schService == NULL)
+	{
+		DBGPrint("OpenService failed w/err 0x%08lx\n", GetLastError());
+		goto Cleanup;
+	}
+
+	// Try to start the service
+	if (StartService(schService, 0, NULL))
+	{
+		DBGPrint("Starting %s\n", pszServiceName);
+		Sleep(1000);
+
+		while (QueryServiceStatus(schService, &ssSvcStatus))
+		{
+			DBGPrint("ssSvcStatus.dwCurrentSate: %d", ssSvcStatus.dwCurrentState);
+			if (ssSvcStatus.dwCurrentState == SERVICE_START_PENDING)
+			{
+				DBGPrint(".");
+				Sleep(1000);
+			}
+			else break;
+		}
+
+		if (ssSvcStatus.dwCurrentState == SERVICE_START)
+		{
+			DBGPrint("\n%s is started.\n", pszServiceName);
+		}
+		else
+		{
+			DBGPrint("\n%s failed to start.\n", pszServiceName);
+		}
+	}
+
+	bRet = TRUE;
+
+Cleanup:
+	// Centralized cleanup for all allocated resources.
+	if (schSCManager)
+	{
+		CloseServiceHandle(schSCManager);
+		schSCManager = NULL;
+	}
+	if (schService)
+	{
+		CloseServiceHandle(schService);
+		schService = NULL;
+	}
+
+	DBGPrint("Returning\n");
+	return bRet;
+}
+
 
 
 
@@ -55,23 +113,52 @@ BOOL InstallService(PSTR pszServiceName,
 {
     BOOL bRet = TRUE;
     char szPath[MAX_PATH];
+	char outPath[MAX_PATH];
     SC_HANDLE schSCManager = NULL;
     SC_HANDLE schService = NULL;
+
+	DBGPrint("Called\n");
+
+
+	// Open the local default service control manager database, we do this first to see
+	// if we're going to be even able to install
+	schSCManager = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT |
+		SC_MANAGER_CREATE_SERVICE);
+	if (schSCManager == NULL)
+	{
+		DBGPrint("OpenSCManager failed w/err 0x%08lx\n", GetLastError());
+		goto Cleanup;
+	}
+
 
     if (GetModuleFileName(NULL, szPath, ARRAYSIZE(szPath)) == 0)
     {
         DBGPrint("GetModuleFileName failed w/err 0x%08lx\n", GetLastError());
         goto Cleanup;
     }
+	DBGPrint("File is: %s\n", szPath);
 
-    // Open the local default service control manager database
-    schSCManager = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT | 
-        SC_MANAGER_CREATE_SERVICE);
-    if (schSCManager == NULL)
-    {
-        DBGPrint("OpenSCManager failed w/err 0x%08lx\n", GetLastError());
-        goto Cleanup;
-    }
+	//Copy the file to win32 or syswow64, depending on bitness
+		//Get windows system directory
+		 GetSystemDirectory(outPath, MAX_PATH);
+	
+		 PTSTR filename = PathFindFileName(szPath);
+		 //Set up the path
+		 strcat(outPath, "\\");
+		 strcat(outPath, filename);
+
+		 DBGPrint("Outfile is: %s\n",outPath);
+
+		 //Copy the file
+		 if (CopyFile(szPath, outPath, TRUE) == FALSE){
+			 DWORD dwError = GetLastError();
+			 DBGPrint("Copyfile failed w/err 0x%08lx\n", dwError);
+			 if (dwError != ERROR_FILE_EXISTS){
+				 goto Cleanup;
+			 }
+			 DBGPrint("File exists, lets install anyway\n");
+		 }
+
 
     // Install the service into SCM by calling CreateService
     schService = CreateService(
@@ -100,6 +187,7 @@ BOOL InstallService(PSTR pszServiceName,
     DBGPrint("%s is installed.\n", pszServiceName);
 
 
+
 Cleanup:
     // Centralized cleanup for all allocated resources.
     if (schSCManager)
@@ -112,6 +200,8 @@ Cleanup:
         CloseServiceHandle(schService);
         schService = NULL;
     }
+
+	DBGPrint("Returning\n");
 
     return bRet;
 }
