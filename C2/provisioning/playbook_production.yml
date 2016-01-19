@@ -8,7 +8,7 @@
     database_host: localhost
     database_port: 5432
     locale: en_US.UTF-8
-    project_path: /opt/PulsarC2
+    project_path: /opt/pulsar/C2
     pulsar_py: "{{ project_path }}/pulsar.py"
     user: root
     settings_module: "config.settings.local"
@@ -43,8 +43,9 @@
     postgresql_user:
       name: "{{ database_user }}"
       password: "{{ database_password }}"
-    sudo: True
-    sudo_user: postgres
+    become: True
+    become_user: postgres
+    become_method: sudo
   - name: create database
     postgresql_db:
       name: "{{ database_name }}"
@@ -53,13 +54,14 @@
       lc_ctype: "{{ locale }}"
       lc_collate: "{{ locale }}"
       template: template0
-    sudo: True
-    sudo_user: postgres
+    become: True
+    become_user: postgres
+    become_method: sudo
   - name: create self-signed SSL cert
     command: "openssl req -new -nodes -x509 -subj '/C=US/ST=Oregon/L=Portland/O=IT/CN={{ fqdn }}' -days 3650 -keyout {{ project_path }}/{{ project_name }}.key -out {{ project_path }}/{{ project_name }}.pem -extensions v3_ca creates='{{ project_path }}/{{ project_name }}.pem'"
   - name: create supervisor configuration
     template: src=templates/supervisor.conf.j2 dest=/etc/supervisor/conf.d/{{ project_name }}.conf
-    sudo: True
+    become: True
     notify: 
       - restart supervisor
       - restart pulsar
@@ -74,19 +76,29 @@
       DJANGO_SETTINGS_MODULE: "{{ settings_module }}"
   - name: create nginx configuration
     template: src=templates/nginx.conf.j2 dest=/etc/nginx/sites-enabled/{{ project_name }}.conf
-    sudo: True
+    become: True
+    become_user: root
+    become_method: sudo
     notify: restart nginx
   - name: delete default nginx site
     file: dest=/etc/nginx/sites-enabled/default state=absent
-    sudo: True
+    become: True
+    become_user: root
+    become_method: sudo
     notify: restart nginx
   handlers:
     - name: restart supervisor
       service: name=supervisor state=restarted
-      sudo: True
+      become: True
+      become_user: root
+      become_method: sudo
     - name: restart pulsar
       supervisorctl: name={{ project_name }} state=restarted
-      sudo: True
+      become: True
+      become_user: root
+      become_method: sudo
     - name: restart nginx
       service: name=nginx state=restarted
-      sudo: True
+      become: True
+      become_user: root
+      become_method: sudo
