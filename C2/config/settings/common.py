@@ -333,7 +333,7 @@ PULSAR_BINARIES['SERVICE_x64_release'] = {
     'path': RELEASE_X64_DIR.path('PulsarService.exe'),
     'extension': 'exe',
 }
-
+#CHANGE METERPROXY_URL to your external IP you want your implant calling back to. Do not change HANDLER_HOST or HANDLER_PORT
 METERPROXY_URL = 'http://127.0.0.1/proxy/'
 HANDLER_HOST = '127.0.0.1'
 HANDLER_PORT = 8080
